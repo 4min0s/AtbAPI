@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Models/">
+    <File Path="TodoContext .cs" />
+    <File Path="TodoItem.cs" />
+  </Folder>
+  <Project Path="TodoApi.csproj" />
+</Solution>
