@@ -12,6 +12,6 @@ public partial class Compte
     public decimal? Solde { get; set; }
 
     public string? TypeCompte { get; set; }
-
+    
     public virtual Client? IdClientNavigation { get; set; }
 }
