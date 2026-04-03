@@ -51,7 +51,11 @@ public partial class Client
 
     public string? IndicateurResidencePath { get; set; }
 
+    public virtual ICollection<Card> Cards { get; set; } = new List<Card>();
+
     public virtual ICollection<Compte> Comptes { get; set; } = new List<Compte>();
+
+    public virtual ICollection<Credit> Credits { get; set; } = new List<Credit>();
 
     public virtual ICollection<DemandeCompte> DemandeComptes { get; set; } = new List<DemandeCompte>();
 

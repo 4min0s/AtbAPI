@@ -88,6 +88,22 @@ namespace TodoApi.Controllers
             return CreatedAtAction("GetDemandeCompte", new { id = demandeCompte.Id }, demandeCompte);
         }
 
+        // GET: api/DemandeComptes/client/5
+        [HttpGet("client/{clientId}")]
+        public async Task<ActionResult<IEnumerable<DemandeCompte>>> GetDemandesByClient(int clientId)
+        {
+            var demandes = await _context.DemandeComptes
+                .Where(d => d.IdClient == clientId)
+                .Include(d => d.IdClientNavigation)
+                .ToListAsync();
+
+            if (!demandes.Any())
+                return NotFound();
+
+            return Ok(demandes);
+        }
+
+
         // DELETE: api/DemandeComptes/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDemandeCompte(int id)
@@ -131,6 +147,36 @@ namespace TodoApi.Controllers
 
             return CreatedAtAction("GetDemandeCompte", new { id = demandeCompte.Id }, demandeCompte);
         }
+        
+        
+        [HttpPost("create-account-with-pdf")]
+        public async Task<ActionResult<DemandeCompte>> PostDemandeCompteAndMailnotfirst(DemandeCompte demandeCompte)
+        {
+            // 1. Get the client
+            var client = await _context.Clients.FindAsync(demandeCompte.IdClient);
+            if (client == null)
+                return NotFound("Client not found");
+
+            // 2. Get the profile email
+            var profile = await _context.Profiles
+                .FirstOrDefaultAsync(p => p.ClientId == demandeCompte.IdClient);
+            if (profile == null)
+                return NotFound("Profile not found");
+
+            // 3. Save demande first to get its Id
+            _context.DemandeComptes.Add(demandeCompte);
+            await _context.SaveChangesAsync();
+
+            // 4. Generate PDF and save to disk
+            demandeCompte.DemandePdfPath = await _pdfService.GenerateAndSavePdfAsyncV2(client, demandeCompte);
+            await _context.SaveChangesAsync();
+
+            // 5. Send email with PDF attached
+            await _emailService.SendDemandeEmailAsync(profile.Email, client, demandeCompte.DemandePdfPath);
+
+            return CreatedAtAction("GetDemandeCompte", new { id = demandeCompte.Id }, demandeCompte);
+        }
+
 
         private bool DemandeCompteExists(int id)
         {

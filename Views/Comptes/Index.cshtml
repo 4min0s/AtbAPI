@@ -1,0 +1,119 @@
+﻿@model IEnumerable<TodoApi.Models.Compte>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Solde)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TypeCompte)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rib)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.DateOuverture)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CodeSwift)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TauxInteretCrediteur)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.InteretCrediteurs)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TauxInteretDebiteur)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.InteretDebiteur)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.SoldeDisponible)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.FrequenceDesInterets)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.DeviseCompte)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Pack)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.IdAgenceNavigation)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.IdClientNavigation)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Solde)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TypeCompte)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Rib)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DateOuverture)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CodeSwift)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TauxInteretCrediteur)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.InteretCrediteurs)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TauxInteretDebiteur)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.InteretDebiteur)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.SoldeDisponible)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.FrequenceDesInterets)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DeviseCompte)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Pack)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IdAgenceNavigation.Id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IdClientNavigation.Id)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
