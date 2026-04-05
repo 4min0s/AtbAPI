@@ -43,9 +43,33 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddScoped<PdfGenerationService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddHostedService<EcheanceProcessorService>();
 
 
 
+// adjust paths to match your setup
+builder.Services.AddSingleton<CreditSimulatorService>(_ =>
+    new CreditSimulatorService("D:\\codes\\projetExcel\\TodoApi\\Assets\\model de calcul crédit.xlsx"));
+
+
+
+builder.Services.AddSingleton<PdfGeneratorService>(_ =>
+    new PdfGeneratorService(
+        xlsxPath: "wwwroot/excel/simulation.xlsx",
+        outputRootFolder: "wwwroot/tableaux",
+        logoPath: "wwwroot/images/logo.jpg"
+    ));
+
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
 
@@ -54,6 +78,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("AllowAngular");
+
 
 app.UseHttpsRedirection();
 
