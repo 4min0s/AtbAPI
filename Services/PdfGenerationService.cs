@@ -416,13 +416,15 @@ public class PdfGenerationService
     }
 
 
-    public async Task<string> GenerateAndSavePdfAsyncV2(Client client , DemandeCompte demande)
+    public async Task<string> GenerateAndSavePdfAsyncV2(Client client, DemandeCompte demande)
     {
-        var pdfBytes = await GenerateClientFormAsyncV2( demande);
-        var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "GeneratedForms");
+        var pdfBytes = await GenerateClientFormAsyncV2(demande);
+
+        var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Documents", "Demandes", demande.Reference);
         if (!Directory.Exists(folderPath))
             Directory.CreateDirectory(folderPath);
-        var filePath = Path.Combine(folderPath, $"{client.Id}_{demande.Id}.pdf");
+
+        var filePath = Path.Combine(folderPath, "demande.pdf");
         await File.WriteAllBytesAsync(filePath, pdfBytes);
         return filePath;
     }

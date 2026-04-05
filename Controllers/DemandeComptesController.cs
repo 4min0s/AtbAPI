@@ -94,7 +94,7 @@ namespace TodoApi.Controllers
         {
             var demandes = await _context.DemandeComptes
                 .Where(d => d.IdClient == clientId)
-                .Include(d => d.IdClientNavigation)
+                .Include(d => d.IdClientNavigation).Include(d=>d.IdAgenceNavigation)
                 .ToListAsync();
 
             if (!demandes.Any())

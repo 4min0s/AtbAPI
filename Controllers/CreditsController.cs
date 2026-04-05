@@ -78,7 +78,7 @@ namespace TodoApi.Controllers
         public async Task<ActionResult<IEnumerable<Credit>>> GetCreditsByClient(int clientId)
         {
             var credits = await _context.Credits
-                .Where(c => c.IdClient == clientId).Include(c => c.Echeances)
+                .Where(c => c.IdClient == clientId).Include(c => c.Echeances).Include(c => c.IdCompteNavigation)
                 .ToListAsync();
 
             if (!credits.Any())
