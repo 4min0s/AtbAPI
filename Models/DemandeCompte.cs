@@ -1,73 +1,115 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
-namespace TodoApi.Models;
-
-public partial class DemandeCompte
+namespace TodoApi.Models
 {
-    public int Id { get; set; }
+    [Table("demande_compte")]
+    public partial class DemandeCompte
+    {
+        [Key]
+        [Column("id")]
+        public int Id { get; set; }
 
-    public int? IdClient { get; set; }
+        [Column("id_client")]
+        public int? IdClient { get; set; }
 
-    public DateOnly? DateEnvoi { get; set; }
+        [Column("id_agence")]
+        public int? IdAgence { get; set; }
 
-    public string? TypeCompte { get; set; }
+        [Column("date_envoi")]
+        public DateOnly? DateEnvoi { get; set; }
 
-    public int? Etat { get; set; }
+        [Column("type_compte")]
+        public string? TypeCompte { get; set; }
 
-    public string? DemandePdfPath { get; set; }
+        [Column("etat")]
+        public int? Etat { get; set; }
 
-    public string? Reference { get; set; }
+        [Column("demande_pdf_path")]
+        public string? DemandePdfPath { get; set; }
 
-    public int? IdAgence { get; set; }
+        [Column("reference")]
+        public string? Reference { get; set; }
 
-    public string? Statut { get; set; }
+        [Column("statut")]
+        public string? Statut { get; set; }
 
-    public string? Telephone { get; set; }
+        [Column("adresse")]
+        public string? Adresse { get; set; }
 
-    public string? Adresse { get; set; }
+        [Column("gouvernorat")]
+        public string? Gouvernorat { get; set; }
 
-    public string? Gouvernorat { get; set; }
+        [Column("civilite")]
+        public string? Civilite { get; set; }
 
-    public string? Civilite { get; set; }
+        [Column("ville")]
+        public string? Ville { get; set; }
 
-    public string? Ville { get; set; }
+        [Column("code_postal")]
+        public string? CodePostal { get; set; }
 
-    public string? CodePostal { get; set; }
+        [Column("profession")]
+        public string? Profession { get; set; }
 
-    public string? Profession { get; set; }
+        [Column("nom_employeur")]
+        public string? NomEmployeur { get; set; }
 
-    public string? NomEmployeur { get; set; }
+        [Column("devise")]
+        public string? Devise { get; set; }
 
-    public string? Devise { get; set; }
+        [Column("revenu_mensuel")]
+        public decimal? RevenuMensuel { get; set; }
 
-    public decimal? RevenuMensuel { get; set; }
+        [Column("nom")]
+        public string? Nom { get; set; }
 
-    public bool? RelationBanque { get; set; }
+        [Column("prenom")]
+        public string? Prenom { get; set; }
 
-    public string? Nom { get; set; }
+        [Column("cin")]
+        public string? Cin { get; set; }
 
-    public string? Prenom { get; set; }
+        [Column("date_naissance")]
+        public DateOnly? DateNaissance { get; set; }
 
-    public DateOnly? DateNaissance { get; set; }
+        [Column("lieu_naissance")]
+        public string? LieuNaissance { get; set; }
 
-    public string? LieuNaissance { get; set; }
+        [Column("sexe")]
+        public bool? Sexe { get; set; }
 
-    public bool? Sexe { get; set; }
+        [Column("date_delivrance")]
+        public DateOnly? DateDelivrance { get; set; }
 
-    public string? Cin { get; set; }
+        [Column("pays")]
+        public string? Pays { get; set; }
 
-    public DateOnly? DateDelivrance { get; set; }
+        [Column("cin_path_front")]
+        public string? CinPathFront { get; set; }
 
-    public string? Pays { get; set; }
+        [Column("cin_path_back")]
+        public string? CinPathBack { get; set; }
 
-    public string? CinPathFront { get; set; }
+        [Column("indicateur_residence_path")]
+        public string? IndicateurResidencePath { get; set; }
 
-    public string? CinPathBack { get; set; }
+        [Column("telephone")]
+        public string? Telephone { get; set; }
 
-    public string? IndicateurResidencePath { get; set; }
+        [Column("relation_banque")]
+        public bool? RelationBanque { get; set; }
 
-    public virtual Agence? IdAgenceNavigation { get; set; }
+        // Navigation Properties
+        [JsonIgnore]
+        [ForeignKey("IdAgence")]
+        public virtual Agence? IdAgenceNavigation { get; set; }
 
-    public virtual Client? IdClientNavigation { get; set; }
+        [JsonIgnore]
+        [ForeignKey("IdClient")]
+        public virtual Client? IdClientNavigation { get; set; }
+    }
 }

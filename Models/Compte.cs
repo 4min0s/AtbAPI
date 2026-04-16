@@ -15,7 +15,7 @@ public partial class Compte
 
     public string? Rib { get; set; }
 
-    public DateOnly? DateOuverture { get; set; }
+    public DateTime? DateOuverture { get; set; }
 
     public string? CodeSwift { get; set; }
 

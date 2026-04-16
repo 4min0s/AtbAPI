@@ -5,12 +5,7 @@ using System.Text;
 using TodoApi.Models;
 using TodoApi.Services;
 
-
-
-
 var builder = WebApplication.CreateBuilder(args);
-
-
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -23,6 +18,17 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<DigiBankContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // nécessaire si tu envoies des cookies/tokens
+    });
+});
 
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -43,9 +49,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddScoped<PdfGenerationService>();
 builder.Services.AddScoped<EmailService>();
-
-
-
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 
 var app = builder.Build();
 
@@ -57,12 +65,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); // must be before UseAuthorization
+// ✅ CORS doit être AVANT Authentication et Authorization
+app.UseCors("AllowAngular");
 
-
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
-
-
-
 app.Run();
