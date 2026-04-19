@@ -156,7 +156,6 @@ namespace TodoApi.Controllers
             return Ok(demande);
         }
 
-        // POST: api/DemandeComptes/5/approve
         [HttpPost("{id}/approve")]
         public async Task<IActionResult> ApproveDemande(int id)
         {
@@ -169,7 +168,7 @@ namespace TodoApi.Controllers
                 if (demande.IdAgence == null)
                     return BadRequest("IdAgence est null");
 
-                // créer client
+                // Étape 1 : créer le client
                 var client = new Client
                 {
                     Nom = demande.Nom,
@@ -192,27 +191,29 @@ namespace TodoApi.Controllers
                 };
 
                 _context.Clients.Add(client);
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(); // ← Save 1 : client uniquement
 
-                // créer compte
-                var compte = new Compte
-                {
-                    IdClient = client.Id,
-                    TypeCompte = demande.TypeCompte,
-                    DateOuverture = DateOnly.FromDateTime(DateTime.UtcNow),
-                    DeviseCompte = demande.Devise,
-                    Solde = 0,
-                    SoldeDisponible = 0,
-                    IdAgence = demande.IdAgence.Value
-                };
+                // Étape 2 : créer le compte séparément
+                await _context.Database.ExecuteSqlRawAsync(@"
+            INSERT INTO compte (id_client, type_compte, date_ouverture, devise_compte, solde, solde_disponible, id_agence)
+            VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})",
+                    client.Id,
+                    demande.TypeCompte ?? "",
+                    DateOnly.FromDateTime(DateTime.UtcNow),
+                    demande.Devise ?? "",
+                    0m,
+                    0m,
+                    demande.IdAgence.Value
+                );
 
-                _context.Comptes.Add(compte);
-
-                // mise à jour demande
-                demande.IdClient = client.Id;
-                demande.Statut = "approved";
-
-                await _context.SaveChangesAsync();
+                // Étape 3 : mettre à jour la demande séparément
+                await _context.Database.ExecuteSqlRawAsync(@"
+            UPDATE demande_compte SET id_client = {0}, statut = {1}
+            WHERE id = {2}",
+                    client.Id,
+                    "approved",
+                    id
+                );
 
                 return Ok(new { message = "Compte créé avec succès", clientId = client.Id });
             }
@@ -226,7 +227,6 @@ namespace TodoApi.Controllers
                 });
             }
         }
-
         // GET: api/DemandeComptes/client/5
         [HttpGet("client/{clientId}")]
         public async Task<ActionResult<IEnumerable<DemandeCompte>>> GetDemandesByClient(int clientId)
@@ -268,6 +268,43 @@ namespace TodoApi.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+        [HttpPost("admin/repair-paths")]
+        public async Task<IActionResult> RepairPaths()
+        {
+            var demandes = await _context.DemandeComptes
+                .Where(d => !string.IsNullOrEmpty(d.Reference))
+                .ToListAsync();
+
+            int count = 0;
+            var extensions = new[] { ".jpg", ".jpeg", ".png" };
+
+            var basePath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..");
+
+            foreach (var d in demandes)
+            {
+                var folder = Path.Combine(Directory.GetCurrentDirectory(), "Documents", "Demandes", d.Reference!);
+                if (!Directory.Exists(folder)) continue;
+
+                bool updated = false;
+
+                foreach (var ext in extensions)
+                {
+                    var front = Path.Combine(folder, $"cin_front{ext}");
+                    var back = Path.Combine(folder, $"cin_back{ext}");
+                    var residence = Path.Combine(folder, $"residence{ext}");
+
+                    if (System.IO.File.Exists(front)) { d.CinPathFront = front; updated = true; }
+                    if (System.IO.File.Exists(back)) { d.CinPathBack = back; updated = true; }
+                    if (System.IO.File.Exists(residence)) { d.IndicateurResidencePath = residence; updated = true; }
+                }
+
+                if (updated) count++;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Paths repaired", count });
         }
     }
 

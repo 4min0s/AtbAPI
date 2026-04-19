@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;  // ← ajout
+using TodoApi.Models;                 // ← ajout
 
 namespace TodoApi.Controllers
 {
@@ -6,6 +8,13 @@ namespace TodoApi.Controllers
     [ApiController]
     public class UploadsController : ControllerBase
     {
+        // ← ajout
+        private readonly DigiBankContext _context;
+        public UploadsController(DigiBankContext context)
+        {
+            _context = context;
+        }
+
         [HttpPost("image")]
         public async Task<IActionResult> UploadImage(IFormFile file, [FromQuery] string reference, [FromQuery] string type)
         {
@@ -23,6 +32,20 @@ namespace TodoApi.Controllers
 
             using (var stream = new FileStream(filePath, FileMode.Create))
                 await file.CopyToAsync(stream);
+
+            // ← ajout
+            var demande = await _context.DemandeComptes
+                .FirstOrDefaultAsync(d => d.Reference == reference);
+            if (demande != null)
+            {
+                switch (type)
+                {
+                    case "cin_front": demande.CinPathFront = filePath; break;
+                    case "cin_back": demande.CinPathBack = filePath; break;
+                    case "residence": demande.IndicateurResidencePath = filePath; break;
+                }
+                await _context.SaveChangesAsync();
+            }
 
             return Ok(new { path = filePath });
         }

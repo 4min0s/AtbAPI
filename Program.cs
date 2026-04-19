@@ -43,7 +43,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddScoped<PdfGenerationService>();
 builder.Services.AddScoped<EmailService>();
-builder.Services.AddHostedService<EcheanceProcessorService>();
+//builder.Services.AddHostedService<EcheanceProcessorService>();
 
 
 
@@ -80,6 +80,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAngular");
+// Expose le dossier Documents comme fichiers statiques
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "Documents")
+    ),
+    RequestPath = "/documents"
+});
 
 
 app.UseHttpsRedirection();
