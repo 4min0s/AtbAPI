@@ -17,13 +17,12 @@ namespace TodoApi.Services
         public CreditResult Simulate(double montant, double tauxAnnuel,
             int periodicite, int dureegrace, double durationmounths)
         {
-            var (durationYears, remainingMonths) = ConvertMonthsToYearsAndMonths(durationmounths);
 
             using (var wb = new XLWorkbook(_filePath))
             {
                 var ws = wb.Worksheets.First();
-                ws.Cell("F3").Value = durationYears;
-                ws.Cell("F4").Value = remainingMonths;
+                ws.Cell("F3").Value = 0;
+                ws.Cell("F4").Value = durationmounths;
                 ws.Cell("D3").Value = montant;
                 ws.Cell("D5").Value = tauxAnnuel / 100;
                 ws.Cell("W2").Value = periodicite;
@@ -47,6 +46,36 @@ namespace TodoApi.Services
             }
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     public class CreditResult
     {

@@ -73,7 +73,7 @@ namespace TodoApi.Controllers
         {
             var credits = await _context.Credits
                 .Where(c => c.IdClient == clientId)
-                .Include(c => c.Echeances)
+                .Include(c=>c.CurrentEcheanceNavigation)
                 .Include(c => c.IdCompteNavigation)
                 .ToListAsync();
 
@@ -96,13 +96,50 @@ namespace TodoApi.Controllers
         }
 
         // POST: api/Credits
-        [HttpPost]
-        public async Task<ActionResult<Credit>> PostCredit(Credit credit)
-        {
-            _context.Credits.Add(credit);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction("GetCredit", new { id = credit.Id }, credit);
-        }
+[HttpPost]
+public async Task<ActionResult<Credit>> PostCredit(Credit credit)
+{
+    // 1. Save credit first to get a valid Id
+    _context.Credits.Add(credit);
+    await _context.SaveChangesAsync();
+
+    // 2. Generate and save echeances to DB
+    await _pdfGenerator.GenerateAndSaveEcheancesAsync(credit, _context);
+
+    // 3. Reload credit with all navigation properties needed for PDF
+    var creditWithIncludes = await _context.Credits
+        .Include(c => c.Echeances)
+        .Include(c => c.IdClientNavigation)
+        .Include(c => c.IdCompteNavigation)
+        .FirstOrDefaultAsync(c => c.Id == credit.Id);
+
+            // 4. Set current_echeance to the first echeance
+    var firstEcheance = creditWithIncludes!.Echeances
+    .OrderBy(e => e.NumeroEcheance)
+    .FirstOrDefault();
+
+    if (firstEcheance != null)
+    {
+        firstEcheance.Etat = 1;  // ✅ safe now
+        creditWithIncludes.CurrentEcheance = firstEcheance.Id;
+        await _context.SaveChangesAsync();
+    }
+
+            if (firstEcheance != null)
+    {
+        creditWithIncludes.CurrentEcheance = firstEcheance.Id;
+        await _context.SaveChangesAsync();
+    }
+
+    // 5. Generate PDF from the echeances
+    var pdfPath = _pdfGenerator.GeneratePdf(creditWithIncludes!);
+
+    // 6. Persist the PDF path on the credit record
+    creditWithIncludes!.TabAmortissementPath = pdfPath;
+    await _context.SaveChangesAsync();
+
+    return CreatedAtAction("GetCredit", new { id = credit.Id }, creditWithIncludes);
+}
 
         // DELETE: api/Credits/5
         [HttpDelete("{id}")]
@@ -140,35 +177,7 @@ namespace TodoApi.Controllers
             });
         }
 
-        // ── POST: api/Credits/generate-pdf ─────────────────────────────
-        [HttpPost("generate-pdf")]
-        public IActionResult GeneratePdf([FromBody] PdfRequestDto dto)
-        {
-            var path = _pdfGenerator.GeneratePdf(
-                dto.DurationYears,
-                dto.Montant,
-                dto.TauxAnnuel,
-                dto.Periodicite,
-                dto.ReferenceCredit,
-                dto.NCompte,
-                dto.Nom,
-                dto.Prenom,
-                dto.NatureCredit,
-                dto.Teg,
-                dto.Tiex,
-                dto.Tmm,
-                dto.MargeBanque,
-                dto.TauxInteret,
-                dto.DureeMonths,
-                dto.DelaisGrace,
-                dto.DatePremEcheance,
-                dto.PeriodiciteInt,
-                dto.DureeGrace,
-                dto.DurationMonths);
-
-            var bytes = System.IO.File.ReadAllBytes(path);
-            return File(bytes, "application/pdf", "tableau_amortissement.pdf");
-        }
+       
 
         private bool CreditExists(int id)
         {

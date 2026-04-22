@@ -14,6 +14,9 @@ using Document = iText.Layout.Document;
 using Paragraph = iText.Layout.Element.Paragraph;
 using Table = iText.Layout.Element.Table;
 using Path = System.IO.Path;
+using TodoApi.Models;
+using DocumentFormat.OpenXml;
+using Microsoft.EntityFrameworkCore;
 
 
 
@@ -36,69 +39,29 @@ namespace TodoApi.Services
         /// Generates the PDF and returns the full path of the created file.
         /// The file is saved under: outputRootFolder/referenceCredit/tableau.pdf
         /// </summary>
-        public string GeneratePdf(
-            double durationYears,
-            double montant,
-            double tauxAnnuel,
-            int periodicite,
-            string referenceCredit,
-            string nCompte,
-            string nom,
-            string prenom,
-            string natureCredit,
-            double teg,
-            double tiex,
-            double tmm,
-            double margeBanque,
-            double tauxInteret,
-            int dureeMonths,
-            int delaisGrace,
-            DateTime datePremEcheance,
-            string periodiciteInt,
-            int dureegrace,
-            double durationmounths)
+        public string GeneratePdf(Credit credit)
         {
-            // ── Build output path using referenceCredit as folder ──
-            // Sanitize referenceCredit so it's safe as a folder name
-            var safeName = string.Concat(referenceCredit.Split(Path.GetInvalidFileNameChars()));
-            var folder = Path.Combine(_outputRootFolder, safeName);
-            Directory.CreateDirectory(folder);   // creates if not exists
-            var outputPdfPath = Path.Combine(folder, "tableau_amortissement.pdf");
+            // ── Build output path ──────────────────────────────────
+            var safeName = string.Concat(credit.Reference!.Split(Path.GetInvalidFileNameChars()));
+            var folder = Path.Combine(_outputRootFolder, "demandescredits", safeName);
+            Directory.CreateDirectory(folder);
+            var outputPdfPath = Path.Combine(folder, "tab_amortissement.pdf");
 
-            // ── Simulate to get totals ─────────────────────────────
-            var simulator = new CreditSimulatorService(_xlsxPath);
-            var result = simulator.Simulate( montant, tauxAnnuel, 1, dureegrace, durationmounths);
-
-            string periodiciteLabel = periodicite switch
+            string periodiciteLabel = credit.Periodicite switch
             {
                 1 => "Mensuel",
-                2 => "Trimestruel",
+                2 => "Trimestriel",
                 3 => "Semestriel",
                 _ => ""
             };
 
-            // ── Read amortization rows from Excel ──────────────────
-            var rows = new List<AmortizationRow>();
-            using (var wb = new XLWorkbook(_xlsxPath))
-            {
-                var ws = wb.Worksheet("TAM");
-                for (int row = 15; row <= 500; row++)
-                {
-                    var echNum = SafeGetDouble(ws.Cell(row, 8));
-                    if (echNum == 0) break;
+            // ── Get echeances from the credit navigation property ──
+            var rows = credit.Echeances
+                .OrderBy(e => e.NumeroEcheance)
+                .ToList();
 
-                    rows.Add(new AmortizationRow
-                    {
-                        Numero = (int)echNum,
-                        Date = SafeGetDate(ws.Cell(row, 11)),
-                        CapitalRestant = SafeGetDouble(ws.Cell(row, 12)),
-                        Interets = SafeGetDouble(ws.Cell(row, 13)),
-                        CapitalRembourse = SafeGetDouble(ws.Cell(row, 14)),
-                        Frais = SafeGetDouble(ws.Cell(row, 15)),
-                        TotalPaye = SafeGetDouble(ws.Cell(row, 16))
-                    });
-                }
-            }
+            if (!rows.Any())
+                throw new InvalidOperationException($"No echeances found for credit {credit.Reference}.");
 
             // ── Build PDF ──────────────────────────────────────────
             using var writer = new PdfWriter(outputPdfPath);
@@ -149,24 +112,25 @@ namespace TodoApi.Services
                     .Add(new Paragraph($"- {label} :   {value}").SetFont(regular).SetFontSize(8.5f))
                     .SetBorder(Border.NO_BORDER).SetPaddingBottom(3));
 
+            var client = credit.IdClientNavigation;
+            var totalCapital = rows.Sum(e => e.CapitalRembourse ?? 0);
+
             var leftInfo = new Table(1).UseAllAvailableWidth().SetBorder(Border.NO_BORDER);
-            AddInfoRow("Référence crédit", referenceCredit, leftInfo);
-            AddInfoRow("N° compte", nCompte, leftInfo);
-            AddInfoRow("Nom et prénom", $"{nom} {prenom}", leftInfo);
-            AddInfoRow("Nature du crédit", natureCredit, leftInfo);
-            AddInfoRow("Montant du crédit", $"{result.TotalCapital:N3}", leftInfo);
-            AddInfoRow("TEG", $"{teg:F8}%", leftInfo);
-            AddInfoRow("TIEX", $"{tiex:F1}%", leftInfo);
+            AddInfoRow("Référence crédit", credit.Reference ?? "-", leftInfo);
+            AddInfoRow("N° compte", credit.IdCompteNavigation?.Rib ?? "-", leftInfo);
+            AddInfoRow("Nom et prénom", $"{client?.Nom ?? "-"} {client?.Prenom ?? "-"}", leftInfo);
+            AddInfoRow("Nature du crédit", credit.NatureCredit ?? "-", leftInfo);
+            AddInfoRow("Montant du crédit", $"{credit.Montant:N3}", leftInfo);
 
             var rightInfo = new Table(1).UseAllAvailableWidth().SetBorder(Border.NO_BORDER);
-            AddInfoRow("TMM", $"{tmm:F2}%", rightInfo);
-            AddInfoRow("Marge de la banque", $"{margeBanque:F0}%", rightInfo);
-            AddInfoRow("Taux d'intérêt : TMM+marge", $"{tauxInteret:F2}%", rightInfo);
-            AddInfoRow("Durée", $"{dureeMonths}M", rightInfo);
-            AddInfoRow("Délais de grâce", $"{delaisGrace}", rightInfo);
-            AddInfoRow("Périodicité PPL", periodiciteLabel, rightInfo);
-            AddInfoRow("Date Prem. Ech.", datePremEcheance.ToString("dd/MM/yyyy"), rightInfo);
-            AddInfoRow("Périodicité Int", periodiciteInt, rightInfo);
+            AddInfoRow("TMM", $"{credit.Tmm:F2}%", rightInfo);
+            AddInfoRow("Marge de la banque", $"{credit.MargeBanque:F0}%", rightInfo);
+            AddInfoRow("Taux d'intérêt : TMM+marge", $"{credit.TauxInteret:F2}%", rightInfo);
+            AddInfoRow("Durée", $"{credit.DureeMois}M", rightInfo);
+            AddInfoRow("Délais de grâce", $"{credit.DureeGrace ?? 0}", rightInfo);
+            AddInfoRow("Périodicité", periodiciteLabel, rightInfo);
+            AddInfoRow("Date Prem. Ech.", credit.PremierEcheance?.ToString("dd/MM/yyyy") ?? "-", rightInfo);
+            AddInfoRow("Nb Echéances", $"{credit.NbEcheance}", rightInfo);
 
             infoTable.AddCell(new Cell().Add(leftInfo).SetBorder(Border.NO_BORDER));
             infoTable.AddCell(new Cell().Add(rightInfo).SetBorder(Border.NO_BORDER));
@@ -179,7 +143,7 @@ namespace TodoApi.Services
                 .SetBorder(new SolidBorder(borderCol, 0.5f));
 
             string[] headers = { "N°", "Date d'échéance", "Capital Restant",
-                                  "Intérêts", "Rem. Principal", "Frais", "Total Ech." };
+                          "Intérêts", "Rem. Principal", "Frais", "Total Ech." };
 
             foreach (var h in headers)
                 table.AddHeaderCell(new Cell()
@@ -204,13 +168,13 @@ namespace TodoApi.Services
                         .SetPaddingTop(3).SetPaddingBottom(3)
                         .SetBorder(new SolidBorder(borderCol, 0.3f));
 
-                table.AddCell(MakeCell(r.Numero.ToString(), true));
-                table.AddCell(MakeCell(r.Date.ToString("dd/MM/yyyy"), true));
+                table.AddCell(MakeCell(r.NumeroEcheance.ToString(), true));
+                table.AddCell(MakeCell(r.DatePaiement?.ToString("dd/MM/yyyy") ?? "-", true));
                 table.AddCell(MakeCell($"{r.CapitalRestant:N3}"));
-                table.AddCell(MakeCell($"{r.Interets:N3}"));
+                table.AddCell(MakeCell($"{r.Interet:N3}"));
                 table.AddCell(MakeCell($"{r.CapitalRembourse:N3}"));
                 table.AddCell(MakeCell($"{r.Frais:N3}"));
-                table.AddCell(MakeCell($"{r.TotalPaye:N3}"));
+                table.AddCell(MakeCell($"{r.EcheanceMontant:N3}"));
             }
 
             doc.Add(table);
@@ -220,7 +184,7 @@ namespace TodoApi.Services
                 .SetTextAlignment(TextAlignment.RIGHT)
                 .SetMarginTop(20));
 
-            return outputPdfPath;  // ← return path so controller can serve it
+            return outputPdfPath;
         }
 
         static DateTime SafeGetDate(IXLCell cell)
@@ -238,7 +202,122 @@ namespace TodoApi.Services
                 System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0;
         }
+
+
+
+
+
+
+
+        public async Task<List<Echeance>> GenerateAndSaveEcheancesAsync(Credit credit, DigiBankContext db)
+        {
+            // ── Run simulation ──
+            var simulator = new CreditSimulatorService(_xlsxPath);
+            simulator.Simulate(
+                montant: (double)credit.Montant,
+                tauxAnnuel: (double)credit.TauxInteret,
+                periodicite: credit.Periodicite ?? 1,
+                dureegrace: credit.DureeGrace ?? 0,
+                durationmounths: (double)credit.DureeMois
+            );
+
+
+
+
+
+
+            var rows = new List<AmortizationRow>();
+            int nbEcheance = 0;
+            decimal montant_total = 0;
+
+            using (var wb = new XLWorkbook(_xlsxPath))
+            {
+                var ws = wb.Worksheet("TAM");
+
+                // Read NbEcheance from P4
+                nbEcheance = (int)SafeGetDouble(ws.Cell("P4"));
+                montant_total = (decimal)SafeGetDouble(ws.Cell("P8"));
+                credit.DateDerniereEcheance = DateOnly.FromDateTime(SafeGetDate(ws.Cell("P3")));
+
+                for (int row = 15; row <= 500; row++)
+                {
+                    var echNum = SafeGetDouble(ws.Cell(row, 8));
+                    if (echNum == 0) break;
+
+                    rows.Add(new AmortizationRow
+                    {
+                        Numero = (int)echNum,
+                        Date = SafeGetDate(ws.Cell(row, 11)),
+                        CapitalRestant = SafeGetDouble(ws.Cell(row, 12)),
+                        Interets = SafeGetDouble(ws.Cell(row, 13)),
+                        CapitalRembourse = SafeGetDouble(ws.Cell(row, 14)),
+                        Frais = SafeGetDouble(ws.Cell(row, 15)),
+                        TotalPaye = SafeGetDouble(ws.Cell(row, 16))
+                    });
+                }
+
+
+            }
+
+            // ── Update NbEcheance on the credit record ──
+            
+            credit.NbEcheance = nbEcheance;
+            credit.MontantTotalARembourser = montant_total;
+            db.Credits.Update(credit);
+
+            // ── Map to Echeance and save ──
+            var echeances = rows.Select(r => new Echeance
+            {
+                IdCredit = credit.Id,
+                NumeroEcheance = r.Numero,
+                DatePaiement = DateOnly.FromDateTime(r.Date),
+                CapitalRestant = (decimal)r.CapitalRestant,
+                Interet = (decimal)r.Interets,
+                CapitalRembourse = (decimal)r.CapitalRembourse,
+                Frais = (decimal)r.Frais,
+                EcheanceMontant = (decimal)r.TotalPaye,
+                Etat = 0,
+            }).ToList();
+
+            await db.Echeances.AddRangeAsync(echeances);
+            await db.SaveChangesAsync(); // saves both the echeances and the updated NbEcheance
+
+            return echeances;
+        }
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     public class AmortizationRow
     {

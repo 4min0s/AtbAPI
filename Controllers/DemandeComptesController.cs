@@ -156,9 +156,8 @@ namespace TodoApi.Controllers
             return Ok(demande);
         }
 
-        // POST: api/DemandeComptes/5/approve
         [HttpPost("{id}/approve")]
-        public async Task<IActionResult> ApproveDemande(int id)
+        public async Task<IActionResult> ApproveDemande(int id, [FromBody] ApproveDto? dto)
         {
             try
             {
@@ -169,50 +168,78 @@ namespace TodoApi.Controllers
                 if (demande.IdAgence == null)
                     return BadRequest("IdAgence est null");
 
-                // créer client
-                var client = new Client
+                Client client;
+
+                if (demande.IdClient != null)
                 {
-                    Nom = demande.Nom,
-                    Prenom = demande.Prenom,
-                    NumTel = demande.Telephone,
-                    Adresse = demande.Adresse,
-                    Ville = demande.Ville,
-                    Pays = demande.Pays,
-                    CodePostal = demande.CodePostal,
-                    Profession = demande.Profession,
-                    NomEmployeur = demande.NomEmployeur,
-                    Devise = demande.Devise,
-                    MontantRevMensuelNet = demande.RevenuMensuel,
-                    Cin = demande.Cin,
-                    DateNaissance = demande.DateNaissance,
-                    LieuNaissance = demande.LieuNaissance,
-                    Sexe = demande.Sexe,
-                    DateDelivrance = demande.DateDelivrance,
-                    RelationBanque = demande.RelationBanque
-                };
+                    // Client existant
+                    client = await _context.Clients.FindAsync(demande.IdClient);
+                    if (client == null)
+                        return NotFound("Client référencé introuvable");
 
-                _context.Clients.Add(client);
-                await _context.SaveChangesAsync();
+                    // Mise à jour des documents si présents
+                    if (!string.IsNullOrEmpty(demande.CinPathFront))
+                        client.CinPathFront = demande.CinPathFront;
+                    if (!string.IsNullOrEmpty(demande.CinPathBack))
+                        client.CinPathBack = demande.CinPathBack;
+                    if (!string.IsNullOrEmpty(demande.IndicateurResidencePath))
+                        client.IndicateurResidencePath = demande.IndicateurResidencePath;
 
-                // créer compte
-                var compte = new Compte
+                    await _context.SaveChangesAsync();
+                }
+                else
                 {
-                    IdClient = client.Id,
-                    TypeCompte = demande.TypeCompte,
-                    DateOuverture = DateOnly.FromDateTime(DateTime.UtcNow),
-                    DeviseCompte = demande.Devise,
-                    Solde = 0,
-                    SoldeDisponible = 0,
-                    IdAgence = demande.IdAgence.Value
-                };
+                    // Nouveau client avec tous ses documents
+                    client = new Client
+                    {
+                        Nom = demande.Nom,
+                        Prenom = demande.Prenom,
+                        NumTel = demande.Telephone,
+                        Adresse = demande.Adresse,
+                        Ville = demande.Ville,
+                        Pays = demande.Pays,
+                        CodePostal = demande.CodePostal,
+                        Profession = demande.Profession,
+                        NomEmployeur = demande.NomEmployeur,
+                        Devise = demande.Devise,
+                        MontantRevMensuelNet = demande.RevenuMensuel,
+                        Cin = demande.Cin,
+                        DateNaissance = demande.DateNaissance,
+                        LieuNaissance = demande.LieuNaissance,
+                        Sexe = demande.Sexe,
+                        DateDelivrance = demande.DateDelivrance,
+                        RelationBanque = demande.RelationBanque,
+                        CinPathFront = demande.CinPathFront,           // ✅
+                        CinPathBack = demande.CinPathBack,             // ✅
+                        IndicateurResidencePath = demande.IndicateurResidencePath // ✅
+                    };
+                    _context.Clients.Add(client);
+                    await _context.SaveChangesAsync();
+                }
 
-                _context.Comptes.Add(compte);
+                // Créer le nouveau compte
+                await _context.Database.ExecuteSqlRawAsync(@"
+        INSERT INTO compte (id_client, type_compte, date_ouverture, devise_compte, solde, solde_disponible, id_agence, pack, rib)
+VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8})",
+      client.Id,
+      demande.TypeCompte ?? "",
+      DateOnly.FromDateTime(DateTime.UtcNow),
+      demande.Devise ?? "",
+      0m,
+      0m,
+      demande.IdAgence.Value,
+      dto?.Pack,
+      dto?.Rib ?? ""
+  );
 
-                // mise à jour demande
-                demande.IdClient = client.Id;
-                demande.Statut = "approved";
-
-                await _context.SaveChangesAsync();
+                // Mettre à jour la demande
+                await _context.Database.ExecuteSqlRawAsync(@"
+            UPDATE demande_compte SET id_client = {0}, statut = {1}
+            WHERE id = {2}",
+                    client.Id,
+                    "approved",
+                    id
+                );
 
                 return Ok(new { message = "Compte créé avec succès", clientId = client.Id });
             }
@@ -226,7 +253,6 @@ namespace TodoApi.Controllers
                 });
             }
         }
-
         // GET: api/DemandeComptes/client/5
         [HttpGet("client/{clientId}")]
         public async Task<ActionResult<IEnumerable<DemandeCompte>>> GetDemandesByClient(int clientId)
@@ -269,11 +295,54 @@ namespace TodoApi.Controllers
 
             return NoContent();
         }
+        [HttpPost("admin/repair-paths")]
+        public async Task<IActionResult> RepairPaths()
+        {
+            var demandes = await _context.DemandeComptes
+                .Where(d => !string.IsNullOrEmpty(d.Reference))
+                .ToListAsync();
+
+            int count = 0;
+            var extensions = new[] { ".jpg", ".jpeg", ".png" };
+
+            var basePath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..");
+
+            foreach (var d in demandes)
+            {
+                var folder = Path.Combine(Directory.GetCurrentDirectory(), "Documents", "Demandes", d.Reference!);
+                if (!Directory.Exists(folder)) continue;
+
+                bool updated = false;
+
+                foreach (var ext in extensions)
+                {
+                    var front = Path.Combine(folder, $"cin_front{ext}");
+                    var back = Path.Combine(folder, $"cin_back{ext}");
+                    var residence = Path.Combine(folder, $"residence{ext}");
+
+                    if (System.IO.File.Exists(front)) { d.CinPathFront = front; updated = true; }
+                    if (System.IO.File.Exists(back)) { d.CinPathBack = back; updated = true; }
+                    if (System.IO.File.Exists(residence)) { d.IndicateurResidencePath = residence; updated = true; }
+                }
+
+                if (updated) count++;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Paths repaired", count });
+        }
     }
 
     // DTO pour PATCH status
     public class StatusUpdateDto
     {
         public string? Status { get; set; }
+    }
+
+    public class ApproveDto
+    {
+        public int? Pack { get; set; }
+        public string? Rib { get; set; }
     }
 }

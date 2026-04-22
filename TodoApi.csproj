@@ -10,7 +10,7 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="itext7" Version="9.6.0" />
-    <PackageReference Include="itext7.bouncy-castle-adapter" Version="9.5.0" />
+    <PackageReference Include="itext7.bouncy-castle-adapter" Version="9.6.0" />
     <PackageReference Include="MailKit" Version="4.15.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Documents\demandescredits\" />
     <Folder Include="GeneratedForms\" />
   </ItemGroup>
 

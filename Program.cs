@@ -55,11 +55,10 @@ builder.Services.AddSingleton<CreditSimulatorService>(_ =>
 
 builder.Services.AddSingleton<PdfGeneratorService>(_ =>
     new PdfGeneratorService(
-        xlsxPath: "wwwroot/excel/simulation.xlsx",
-        outputRootFolder: "wwwroot/tableaux",
-        logoPath: "wwwroot/images/logo.jpg"
+        xlsxPath: "D:\\codes\\projetExcel\\TodoApi\\Assets\\model de calcul crédit.xlsx",
+        outputRootFolder: "D:\\codes\\projetExcel\\TodoApi\\Documents\\",
+        logoPath: "D:\\codes\\projetExcel\\TodoApi\\Assets\\logo.jpg"
     ));
-
 
 builder.Services.AddCors(options =>
 {
@@ -80,6 +79,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAngular");
+// Expose le dossier Documents comme fichiers statiques
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "Documents")
+    ),
+    RequestPath = "/documents"
+});
 
 
 app.UseHttpsRedirection();

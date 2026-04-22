@@ -217,48 +217,56 @@ public partial class DigiBankContext : DbContext
             entity.ToTable("credit");
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Cout)
-                .HasPrecision(15, 2)
-                .HasColumnName("cout");
+            entity.Property(e => e.CurrentEcheance).HasColumnName("current_echeance");
             entity.Property(e => e.DateDeblocage).HasColumnName("date_deblocage");
-            entity.Property(e => e.DeposeDate).HasColumnName("depose_date");
-            entity.Property(e => e.Duree).HasColumnName("duree");
-            entity.Property(e => e.Echeance).HasColumnName("echeance");
-            entity.Property(e => e.Franchise)
-                .HasDefaultValue(false)
-                .HasColumnName("franchise");
+            entity.Property(e => e.DateDerniereEcheance).HasColumnName("date_derniere_echeance");
+            entity.Property(e => e.DureeGrace)
+                .HasDefaultValue(0)
+                .HasColumnName("duree_grace");
+            entity.Property(e => e.DureeMois).HasColumnName("duree_mois");
+            entity.Property(e => e.FraisAdditionel)
+                .HasPrecision(15, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("frais_additionel");
             entity.Property(e => e.IdClient).HasColumnName("id_client");
             entity.Property(e => e.IdCompte).HasColumnName("id_compte");
+            entity.Property(e => e.MargeBanque)
+                .HasPrecision(5, 2)
+                .HasColumnName("marge_banque");
             entity.Property(e => e.Montant)
                 .HasPrecision(15, 2)
                 .HasColumnName("montant");
+            entity.Property(e => e.MontantRembourse)
+                .HasPrecision(15, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("montant_rembourse");
             entity.Property(e => e.MontantTotalARembourser)
                 .HasPrecision(15, 2)
                 .HasColumnName("montant_total_a_rembourser");
+            entity.Property(e => e.NatureCredit)
+                .HasMaxLength(100)
+                .HasColumnName("nature_credit");
             entity.Property(e => e.NbEcheance).HasColumnName("nb_echeance");
             entity.Property(e => e.Objet)
                 .HasMaxLength(255)
                 .HasColumnName("objet");
+            entity.Property(e => e.Periodicite).HasColumnName("periodicite");
+            entity.Property(e => e.PremierEcheance).HasColumnName("premier_echeance");
             entity.Property(e => e.Reference)
                 .HasMaxLength(50)
                 .HasColumnName("reference");
-            entity.Property(e => e.Rythme).HasColumnName("rythme");
-            entity.Property(e => e.Taux)
+            entity.Property(e => e.TabAmortissementPath).HasColumnName("tab_amortissement_path");
+            entity.Property(e => e.TauxInteret)
                 .HasPrecision(5, 2)
-                .HasColumnName("taux");
-            entity.Property(e => e.TauxAssInc)
+                .HasColumnName("taux_interet");
+            entity.Property(e => e.Tmm)
                 .HasPrecision(5, 2)
-                .HasColumnName("taux_ass_inc");
-            entity.Property(e => e.TauxAssVie)
-                .HasPrecision(5, 2)
-                .HasColumnName("taux_ass_vie");
-            entity.Property(e => e.Type)
-                .HasMaxLength(50)
-                .HasColumnName("type");
+                .HasColumnName("tmm");
 
-            entity.HasOne(d => d.EcheanceNavigation).WithMany(p => p.Credits)
-                .HasForeignKey(d => d.Echeance)
-                .HasConstraintName("credit_echeance_actuelle_fkey");
+            entity.HasOne(d => d.CurrentEcheanceNavigation).WithMany(p => p.Credits)
+                .HasForeignKey(d => d.CurrentEcheance)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("credit_current_echeance_fkey");
 
             entity.HasOne(d => d.IdClientNavigation).WithMany(p => p.Credits)
                 .HasForeignKey(d => d.IdClient)
@@ -362,45 +370,28 @@ public partial class DigiBankContext : DbContext
             entity.ToTable("echeance");
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Amortissement)
-                .HasPrecision(15, 2)
-                .HasColumnName("amortissement");
-            entity.Property(e => e.AssInc)
-                .HasPrecision(15, 2)
-                .HasColumnName("ass_inc");
-            entity.Property(e => e.AssVie)
-                .HasPrecision(15, 2)
-                .HasColumnName("ass_vie");
             entity.Property(e => e.CapitalRembourse)
                 .HasPrecision(15, 2)
                 .HasColumnName("capital_rembourse");
             entity.Property(e => e.CapitalRestant)
                 .HasPrecision(15, 2)
                 .HasColumnName("capital_restant");
-            entity.Property(e => e.DateEcheance).HasColumnName("date_echeance");
             entity.Property(e => e.DatePaiement).HasColumnName("date_paiement");
-            entity.Property(e => e.IdCredit).HasColumnName("id_credit");
-            entity.Property(e => e.IntAdd)
+            entity.Property(e => e.EcheanceMontant)
                 .HasPrecision(15, 2)
-                .HasColumnName("int_add");
+                .HasColumnName("echeance_montant");
+            entity.Property(e => e.Etat)
+                .HasDefaultValue((short)0)
+                .HasColumnName("etat");
+            entity.Property(e => e.Frais)
+                .HasPrecision(15, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("frais");
+            entity.Property(e => e.IdCredit).HasColumnName("id_credit");
             entity.Property(e => e.Interet)
                 .HasPrecision(15, 2)
                 .HasColumnName("interet");
-            entity.Property(e => e.InteretRembourse)
-                .HasPrecision(15, 2)
-                .HasDefaultValue(0m)
-                .HasColumnName("interet_rembourse");
-            entity.Property(e => e.InteretRestant)
-                .HasPrecision(15, 2)
-                .HasDefaultValue(0m)
-                .HasColumnName("interet_restant");
             entity.Property(e => e.NumeroEcheance).HasColumnName("numero_echeance");
-            entity.Property(e => e.Statut)
-                .HasDefaultValue((short)0)
-                .HasColumnName("statut");
-            entity.Property(e => e.TotalEcheance)
-                .HasPrecision(15, 2)
-                .HasColumnName("total_echeance");
 
             entity.HasOne(d => d.IdCreditNavigation).WithMany(p => p.Echeances)
                 .HasForeignKey(d => d.IdCredit)

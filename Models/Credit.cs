@@ -11,39 +11,45 @@ public partial class Credit
 
     public int? IdCompte { get; set; }
 
-    public string? Reference { get; set; }
-
-    public decimal? Cout { get; set; }
+    public string? NatureCredit { get; set; }
 
     public string? Objet { get; set; }
 
-    public string? Type { get; set; }
+    public string? Reference { get; set; }
 
     public decimal? Montant { get; set; }
 
-    public int? Duree { get; set; }
+    public int? DureeMois { get; set; }
 
     public int? NbEcheance { get; set; }
 
-    public DateOnly? DeposeDate { get; set; }
+    public DateOnly? PremierEcheance { get; set; }
 
-    public DateOnly? DateDeblocage { get; set; }
+    public string? TabAmortissementPath { get; set; }
 
-    public bool? Franchise { get; set; }
+    public int? DureeGrace { get; set; }
 
-    public decimal? Taux { get; set; }
+    public decimal? Tmm { get; set; }
 
-    public decimal? TauxAssVie { get; set; }
+    public decimal? MargeBanque { get; set; }
 
-    public decimal? TauxAssInc { get; set; }
+    public decimal? TauxInteret { get; set; }
 
-    public short? Rythme { get; set; }
+    public decimal? FraisAdditionel { get; set; }
 
-    public int? Echeance { get; set; }
+    public short? Periodicite { get; set; }
 
     public decimal? MontantTotalARembourser { get; set; }
 
-    public virtual Echeance? EcheanceNavigation { get; set; }
+    public int? CurrentEcheance { get; set; }
+
+    public decimal? MontantRembourse { get; set; }
+
+    public DateOnly? DateDerniereEcheance { get; set; }
+
+    public DateOnly? DateDeblocage { get; set; }
+
+    public virtual Echeance? CurrentEcheanceNavigation { get; set; }
 
     public virtual ICollection<Echeance> Echeances { get; set; } = new List<Echeance>();
 
