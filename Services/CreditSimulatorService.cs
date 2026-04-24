@@ -15,7 +15,7 @@ namespace TodoApi.Services
         }
 
         public CreditResult Simulate(double montant, double tauxAnnuel,
-            int periodicite, int dureegrace, double durationmounths)
+            int periodicite, int dureegrace, double durationmounths , double frais )
         {
 
             using (var wb = new XLWorkbook(_filePath))
@@ -29,6 +29,7 @@ namespace TodoApi.Services
                 ws.Cell("M7").Value = dureegrace;
                 ws.Cell("F6").Value = DateTime.Now.Date;
                 ws.Cell("F6").Style.NumberFormat.Format = "dd/MM/yyyy";
+                ws.Cell("M3").Value = frais;
                 wb.Save();
             }
             using (var wb = new XLWorkbook(_filePath))

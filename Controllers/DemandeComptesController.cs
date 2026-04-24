@@ -332,6 +332,65 @@ VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8})",
 
             return Ok(new { message = "Paths repaired", count });
         }
+
+
+        [HttpGet("agence/{idAgence}")]
+        public async Task<IActionResult> GetDemandesByAgence(int idAgence)
+        {
+            try
+            {
+                var demandes = await _context.DemandeComptes
+                    .Where(d => d.IdAgence == idAgence)
+                    .Select(d => new
+                    {
+                        d.Id,
+                        d.IdClient,
+                        d.IdAgence,
+                        d.DateEnvoi,
+                        d.TypeCompte,
+                        d.Etat,
+                        d.DemandePdfPath,
+                        d.Reference,
+                        d.Statut,
+                        d.Adresse,
+                        d.Gouvernorat,
+                        d.Civilite,
+                        d.Ville,
+                        d.CodePostal,
+                        d.Profession,
+                        d.NomEmployeur,
+                        d.Devise,
+                        d.RevenuMensuel,
+                        d.Nom,
+                        d.Prenom,
+                        d.Cin,
+                        d.DateNaissance,
+                        d.LieuNaissance,
+                        d.Sexe,
+                        d.DateDelivrance,
+                        d.Pays,
+                        d.CinPathFront,
+                        d.CinPathBack,
+                        d.IndicateurResidencePath,
+                        d.Telephone,
+                        d.RelationBanque
+                    })
+                    .ToListAsync();
+
+                return Ok(demandes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Erreur lors du chargement des demandes par agence.",
+                    error = ex.Message,
+                    inner = ex.InnerException?.Message
+                });
+            }
+        }
+
+
     }
 
     // DTO pour PATCH status

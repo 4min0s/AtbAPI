@@ -51,6 +51,8 @@ public partial class Credit
 
     public virtual Echeance? CurrentEcheanceNavigation { get; set; }
 
+    public virtual ICollection<DemandeCredit> DemandeCredits { get; set; } = new List<DemandeCredit>();
+
     public virtual ICollection<Echeance> Echeances { get; set; } = new List<Echeance>();
 
     public virtual Client? IdClientNavigation { get; set; }

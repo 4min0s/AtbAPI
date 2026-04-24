@@ -163,7 +163,10 @@ public async Task<ActionResult<Credit>> PostCredit(Credit credit)
                 dto.TauxAnnuel,
                 dto.Periodicite,
                 dto.DureeGrace,
-                dto.DurationMonths);
+                dto.DurationMonths,
+                0
+                
+                );
 
             return Ok(new SimulationResponseDto
             {

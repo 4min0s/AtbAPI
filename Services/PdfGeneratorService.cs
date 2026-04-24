@@ -218,7 +218,9 @@ namespace TodoApi.Services
                 tauxAnnuel: (double)credit.TauxInteret,
                 periodicite: credit.Periodicite ?? 1,
                 dureegrace: credit.DureeGrace ?? 0,
-                durationmounths: (double)credit.DureeMois
+                durationmounths: (double)credit.DureeMois,
+                frais: (double)credit.FraisAdditionel
+
             );
 
 

@@ -41,6 +41,8 @@ public partial class Compte
 
     public virtual ICollection<Credit> Credits { get; set; } = new List<Credit>();
 
+    public virtual ICollection<DemandeCredit> DemandeCredits { get; set; } = new List<DemandeCredit>();
+
     public virtual Agence? IdAgenceNavigation { get; set; }
 
     public virtual Client? IdClientNavigation { get; set; }

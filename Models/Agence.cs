@@ -17,6 +17,8 @@ public partial class Agence
 
     public string? Fax { get; set; }
 
+    public virtual ICollection<Agent> Agents { get; set; } = new List<Agent>();
+
     public virtual ICollection<Compte> Comptes { get; set; } = new List<Compte>();
 
     public virtual ICollection<DemandeCompte> DemandeComptes { get; set; } = new List<DemandeCompte>();

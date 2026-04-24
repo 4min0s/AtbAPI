@@ -59,5 +59,7 @@ public partial class Client
 
     public virtual ICollection<DemandeCompte> DemandeComptes { get; set; } = new List<DemandeCompte>();
 
+    public virtual ICollection<DemandeCredit> DemandeCredits { get; set; } = new List<DemandeCredit>();
+
     public virtual ICollection<Profile> Profiles { get; set; } = new List<Profile>();
 }

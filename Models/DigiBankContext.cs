@@ -17,6 +17,8 @@ public partial class DigiBankContext : DbContext
 
     public virtual DbSet<Agence> Agences { get; set; }
 
+    public virtual DbSet<Agent> Agents { get; set; }
+
     public virtual DbSet<Card> Cards { get; set; }
 
     public virtual DbSet<Client> Clients { get; set; }
@@ -26,6 +28,18 @@ public partial class DigiBankContext : DbContext
     public virtual DbSet<Credit> Credits { get; set; }
 
     public virtual DbSet<DemandeCompte> DemandeComptes { get; set; }
+
+    public virtual DbSet<DemandeCredit> DemandeCredits { get; set; }
+
+    public virtual DbSet<DemandeCreditImmobilier> DemandeCreditImmobiliers { get; set; }
+
+    public virtual DbSet<DemandeCreditImmobilierAcquisition> DemandeCreditImmobilierAcquisitions { get; set; }
+
+    public virtual DbSet<DemandeCreditImmobilierConstruction> DemandeCreditImmobilierConstructions { get; set; }
+
+    public virtual DbSet<DemandeCreditImmobilierRenovation> DemandeCreditImmobilierRenovations { get; set; }
+
+    public virtual DbSet<DemandeCreditVehicule> DemandeCreditVehicules { get; set; }
 
     public virtual DbSet<Echeance> Echeances { get; set; }
 
@@ -57,6 +71,34 @@ public partial class DigiBankContext : DbContext
             entity.Property(e => e.Telephone)
                 .HasMaxLength(20)
                 .HasColumnName("telephone");
+        });
+
+        modelBuilder.Entity<Agent>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("agent_pkey");
+
+            entity.ToTable("agent");
+
+            entity.HasIndex(e => e.Email, "agent_email_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Email)
+                .HasMaxLength(150)
+                .HasColumnName("email");
+            entity.Property(e => e.IdAgence).HasColumnName("id_agence");
+            entity.Property(e => e.MotDePasse)
+                .HasMaxLength(255)
+                .HasColumnName("mot_de_passe");
+            entity.Property(e => e.Nom)
+                .HasMaxLength(100)
+                .HasColumnName("nom");
+            entity.Property(e => e.Prenom)
+                .HasMaxLength(100)
+                .HasColumnName("prenom");
+
+            entity.HasOne(d => d.IdAgenceNavigation).WithMany(p => p.Agents)
+                .HasForeignKey(d => d.IdAgence)
+                .HasConstraintName("fk_agent_agence");
         });
 
         modelBuilder.Entity<Card>(entity =>
@@ -361,6 +403,197 @@ public partial class DigiBankContext : DbContext
             entity.HasOne(d => d.IdClientNavigation).WithMany(p => p.DemandeComptes)
                 .HasForeignKey(d => d.IdClient)
                 .HasConstraintName("demande_compte_id_client_fkey");
+        });
+
+        modelBuilder.Entity<DemandeCredit>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("demande_credit_pkey");
+
+            entity.ToTable("demande_credit");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Adresse).HasColumnName("adresse");
+            entity.Property(e => e.AttestationDeSalairePath).HasColumnName("attestation_de_salaire_path");
+            entity.Property(e => e.AttestationDeTravailPath).HasColumnName("attestation_de_travail_path");
+            entity.Property(e => e.AutresSourcesDeRevenu).HasColumnName("autres_sources_de_revenu");
+            entity.Property(e => e.CinPathBack).HasColumnName("cin_path_back");
+            entity.Property(e => e.CinPathFront).HasColumnName("cin_path_front");
+            entity.Property(e => e.CodePostal)
+                .HasMaxLength(10)
+                .HasColumnName("code_postal");
+            entity.Property(e => e.DateEnvoi)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("date_envoi");
+            entity.Property(e => e.DureeGrace)
+                .HasDefaultValue(0)
+                .HasColumnName("duree_grace");
+            entity.Property(e => e.DureeMois).HasColumnName("duree_mois");
+            entity.Property(e => e.Etat)
+                .HasDefaultValue(0)
+                .HasColumnName("etat");
+            entity.Property(e => e.FicheDePaiePath).HasColumnName("fiche_de_paie_path");
+            entity.Property(e => e.Gouvernorat)
+                .HasMaxLength(100)
+                .HasColumnName("gouvernorat");
+            entity.Property(e => e.IdClient).HasColumnName("id_client");
+            entity.Property(e => e.IdCompte).HasColumnName("id_compte");
+            entity.Property(e => e.IdCredit).HasColumnName("id_credit");
+            entity.Property(e => e.IndicateurResidencePath).HasColumnName("indicateur_residence_path");
+            entity.Property(e => e.Montant)
+                .HasPrecision(15, 2)
+                .HasColumnName("montant");
+            entity.Property(e => e.MontantMensuelAutresRevenus)
+                .HasPrecision(12, 2)
+                .HasColumnName("montant_mensuel_autres_revenus");
+            entity.Property(e => e.NatureCredit)
+                .HasMaxLength(100)
+                .HasColumnName("nature_credit");
+            entity.Property(e => e.Objet)
+                .HasMaxLength(255)
+                .HasColumnName("objet");
+            entity.Property(e => e.Pays)
+                .HasMaxLength(100)
+                .HasColumnName("pays");
+            entity.Property(e => e.Periodicite).HasColumnName("periodicite");
+            entity.Property(e => e.Reference)
+                .HasMaxLength(50)
+                .HasColumnName("reference");
+            entity.Property(e => e.RevenuMensuelNet)
+                .HasPrecision(12, 2)
+                .HasColumnName("revenu_mensuel_net");
+            entity.Property(e => e.SituationProfessionnelle)
+                .HasMaxLength(100)
+                .HasColumnName("situation_professionnelle");
+            entity.Property(e => e.TypeCredit)
+                .HasMaxLength(20)
+                .HasColumnName("type_credit");
+            entity.Property(e => e.Ville)
+                .HasMaxLength(100)
+                .HasColumnName("ville");
+
+            entity.HasOne(d => d.IdClientNavigation).WithMany(p => p.DemandeCredits)
+                .HasForeignKey(d => d.IdClient)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("demande_credit_id_client_fkey");
+
+            entity.HasOne(d => d.IdCompteNavigation).WithMany(p => p.DemandeCredits)
+                .HasForeignKey(d => d.IdCompte)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("demande_credit_id_compte_fkey");
+
+            entity.HasOne(d => d.IdCreditNavigation).WithMany(p => p.DemandeCredits)
+                .HasForeignKey(d => d.IdCredit)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("demande_credit_id_credit_fkey");
+        });
+
+        modelBuilder.Entity<DemandeCreditImmobilier>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("demande_credit_immobilier_pkey");
+
+            entity.ToTable("demande_credit_immobilier");
+
+            entity.HasIndex(e => e.IdDemande, "demande_credit_immobilier_id_demande_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.IdDemande).HasColumnName("id_demande");
+            entity.Property(e => e.SousType)
+                .HasMaxLength(20)
+                .HasColumnName("sous_type");
+
+            entity.HasOne(d => d.IdDemandeNavigation).WithOne(p => p.DemandeCreditImmobilier)
+                .HasForeignKey<DemandeCreditImmobilier>(d => d.IdDemande)
+                .HasConstraintName("demande_credit_immobilier_id_demande_fkey");
+        });
+
+        modelBuilder.Entity<DemandeCreditImmobilierAcquisition>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("demande_credit_immobilier_acquisition_pkey");
+
+            entity.ToTable("demande_credit_immobilier_acquisition");
+
+            entity.HasIndex(e => e.IdImmobilier, "demande_credit_immobilier_acquisition_id_immobilier_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.IdImmobilier).HasColumnName("id_immobilier");
+            entity.Property(e => e.PrixImmobilier)
+                .HasPrecision(15, 2)
+                .HasColumnName("prix_immobilier");
+            entity.Property(e => e.PromesseVentePath).HasColumnName("promesse_vente_path");
+            entity.Property(e => e.TypeAcquisition)
+                .HasMaxLength(100)
+                .HasColumnName("type_acquisition");
+
+            entity.HasOne(d => d.IdImmobilierNavigation).WithOne(p => p.DemandeCreditImmobilierAcquisition)
+                .HasForeignKey<DemandeCreditImmobilierAcquisition>(d => d.IdImmobilier)
+                .HasConstraintName("demande_credit_immobilier_acquisition_id_immobilier_fkey");
+        });
+
+        modelBuilder.Entity<DemandeCreditImmobilierConstruction>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("demande_credit_immobilier_construction_pkey");
+
+            entity.ToTable("demande_credit_immobilier_construction");
+
+            entity.HasIndex(e => e.IdImmobilier, "demande_credit_immobilier_construction_id_immobilier_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AutorisationBatirPath).HasColumnName("autorisation_batir_path");
+            entity.Property(e => e.CoutTravaux)
+                .HasPrecision(15, 2)
+                .HasColumnName("cout_travaux");
+            entity.Property(e => e.DevisEstimatifPath).HasColumnName("devis_estimatif_path");
+            entity.Property(e => e.IdImmobilier).HasColumnName("id_immobilier");
+            entity.Property(e => e.PlanArchitectePath).HasColumnName("plan_architecte_path");
+
+            entity.HasOne(d => d.IdImmobilierNavigation).WithOne(p => p.DemandeCreditImmobilierConstruction)
+                .HasForeignKey<DemandeCreditImmobilierConstruction>(d => d.IdImmobilier)
+                .HasConstraintName("demande_credit_immobilier_construction_id_immobilier_fkey");
+        });
+
+        modelBuilder.Entity<DemandeCreditImmobilierRenovation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("demande_credit_immobilier_renovation_pkey");
+
+            entity.ToTable("demande_credit_immobilier_renovation");
+
+            entity.HasIndex(e => e.IdImmobilier, "demande_credit_immobilier_renovation_id_immobilier_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CoutTravaux)
+                .HasPrecision(15, 2)
+                .HasColumnName("cout_travaux");
+            entity.Property(e => e.DevisEstimatifPath).HasColumnName("devis_estimatif_path");
+            entity.Property(e => e.IdImmobilier).HasColumnName("id_immobilier");
+
+            entity.HasOne(d => d.IdImmobilierNavigation).WithOne(p => p.DemandeCreditImmobilierRenovation)
+                .HasForeignKey<DemandeCreditImmobilierRenovation>(d => d.IdImmobilier)
+                .HasConstraintName("demande_credit_immobilier_renovation_id_immobilier_fkey");
+        });
+
+        modelBuilder.Entity<DemandeCreditVehicule>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("demande_credit_vehicule_pkey");
+
+            entity.ToTable("demande_credit_vehicule");
+
+            entity.HasIndex(e => e.IdDemande, "demande_credit_vehicule_id_demande_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CarteGrisePath).HasColumnName("carte_grise_path");
+            entity.Property(e => e.DatePremiereMiseEnCirculation).HasColumnName("date_premiere_mise_en_circulation");
+            entity.Property(e => e.FactureProformaPath).HasColumnName("facture_proforma_path");
+            entity.Property(e => e.IdDemande).HasColumnName("id_demande");
+            entity.Property(e => e.PrixVehicule)
+                .HasPrecision(15, 2)
+                .HasColumnName("prix_vehicule");
+            entity.Property(e => e.PromesseVentePath).HasColumnName("promesse_vente_path");
+            entity.Property(e => e.PuissanceFiscale).HasColumnName("puissance_fiscale");
+            entity.Property(e => e.VehiculeNeuf).HasColumnName("vehicule_neuf");
+
+            entity.HasOne(d => d.IdDemandeNavigation).WithOne(p => p.DemandeCreditVehicule)
+                .HasForeignKey<DemandeCreditVehicule>(d => d.IdDemande)
+                .HasConstraintName("demande_credit_vehicule_id_demande_fkey");
         });
 
         modelBuilder.Entity<Echeance>(entity =>

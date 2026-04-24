@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Documents\DemandesCredit\**" />
+    <Content Remove="Documents\DemandesCredit\**" />
+    <EmbeddedResource Remove="Documents\DemandesCredit\**" />
+    <None Remove="Documents\DemandesCredit\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="itext7" Version="9.6.0" />
