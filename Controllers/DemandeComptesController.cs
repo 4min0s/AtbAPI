@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Humanizer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -157,7 +158,7 @@ namespace TodoApi.Controllers
         }
 
         [HttpPost("{id}/approve")]
-        public async Task<IActionResult> ApproveDemande(int id)
+        public async Task<IActionResult> ApproveDemande(int id, [FromBody] ApproveDto? dto)
         {
             try
             {
@@ -168,45 +169,71 @@ namespace TodoApi.Controllers
                 if (demande.IdAgence == null)
                     return BadRequest("IdAgence est null");
 
-                // Étape 1 : créer le client
-                var client = new Client
+                Client client;
+
+                if (demande.IdClient != null)
                 {
-                    Nom = demande.Nom,
-                    Prenom = demande.Prenom,
-                    NumTel = demande.Telephone,
-                    Adresse = demande.Adresse,
-                    Ville = demande.Ville,
-                    Pays = demande.Pays,
-                    CodePostal = demande.CodePostal,
-                    Profession = demande.Profession,
-                    NomEmployeur = demande.NomEmployeur,
-                    Devise = demande.Devise,
-                    MontantRevMensuelNet = demande.RevenuMensuel,
-                    Cin = demande.Cin,
-                    DateNaissance = demande.DateNaissance,
-                    LieuNaissance = demande.LieuNaissance,
-                    Sexe = demande.Sexe,
-                    DateDelivrance = demande.DateDelivrance,
-                    RelationBanque = demande.RelationBanque
-                };
+                    // Client existant
+                    client = await _context.Clients.FindAsync(demande.IdClient);
+                    if (client == null)
+                        return NotFound("Client référencé introuvable");
 
-                _context.Clients.Add(client);
-                await _context.SaveChangesAsync(); // ← Save 1 : client uniquement
+                    // Mise à jour des documents si présents
+                    if (!string.IsNullOrEmpty(demande.CinPathFront))
+                        client.CinPathFront = demande.CinPathFront;
+                    if (!string.IsNullOrEmpty(demande.CinPathBack))
+                        client.CinPathBack = demande.CinPathBack;
+                    if (!string.IsNullOrEmpty(demande.IndicateurResidencePath))
+                        client.IndicateurResidencePath = demande.IndicateurResidencePath;
 
-                // Étape 2 : créer le compte séparément
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    // Nouveau client avec tous ses documents
+                    client = new Client
+                    {
+                        Nom = demande.Nom,
+                        Prenom = demande.Prenom,
+                        NumTel = demande.Telephone,
+                        Adresse = demande.Adresse,
+                        Ville = demande.Ville,
+                        Pays = demande.Pays,
+                        CodePostal = demande.CodePostal,
+                        Profession = demande.Profession,
+                        NomEmployeur = demande.NomEmployeur,
+                        Devise = demande.Devise,
+                        MontantRevMensuelNet = demande.RevenuMensuel,
+                        Cin = demande.Cin,
+                        DateNaissance = demande.DateNaissance,
+                        LieuNaissance = demande.LieuNaissance,
+                        Sexe = demande.Sexe,
+                        DateDelivrance = demande.DateDelivrance,
+                        RelationBanque = demande.RelationBanque,
+                        CinPathFront = demande.CinPathFront,           // ✅
+                        CinPathBack = demande.CinPathBack,             // ✅
+                        IndicateurResidencePath = demande.IndicateurResidencePath // ✅
+                    };
+                    _context.Clients.Add(client);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Créer le nouveau compte
                 await _context.Database.ExecuteSqlRawAsync(@"
-            INSERT INTO compte (id_client, type_compte, date_ouverture, devise_compte, solde, solde_disponible, id_agence)
-            VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})",
-                    client.Id,
-                    demande.TypeCompte ?? "",
-                    DateOnly.FromDateTime(DateTime.UtcNow),
-                    demande.Devise ?? "",
-                    0m,
-                    0m,
-                    demande.IdAgence.Value
-                );
+        INSERT INTO compte (id_client, type_compte, date_ouverture, devise_compte, solde, solde_disponible, id_agence, pack, rib)
+VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8})",
+      client.Id,
+      demande.TypeCompte ?? "",
+      DateOnly.FromDateTime(DateTime.UtcNow),
+      demande.Devise ?? "",
+      0m,
+      0m,
+      demande.IdAgence.Value,
+      dto?.Pack,
+      dto?.Rib ?? ""
+  );
 
-                // Étape 3 : mettre à jour la demande séparément
+                // Mettre à jour la demande
                 await _context.Database.ExecuteSqlRawAsync(@"
             UPDATE demande_compte SET id_client = {0}, statut = {1}
             WHERE id = {2}",
@@ -306,11 +333,72 @@ namespace TodoApi.Controllers
 
             return Ok(new { message = "Paths repaired", count });
         }
+        // GET: api/DemandeComptes/agence/5
+        [HttpGet("agence/{idAgence}")]
+        public async Task<IActionResult> GetDemandesByAgence(int idAgence)
+        {
+            try
+            {
+                var demandes = await _context.DemandeComptes
+                    .Where(d => d.IdAgence == idAgence)
+                    .Select(d => new
+                    {
+                        d.Id,
+                        d.IdClient,
+                        d.IdAgence,
+                        d.DateEnvoi,
+                        d.TypeCompte,
+                        d.Etat,
+                        d.DemandePdfPath,
+                        d.Reference,
+                        d.Statut,
+                        d.Adresse,
+                        d.Gouvernorat,
+                        d.Civilite,
+                        d.Ville,
+                        d.CodePostal,
+                        d.Profession,
+                        d.NomEmployeur,
+                        d.Devise,
+                        d.RevenuMensuel,
+                        d.Nom,
+                        d.Prenom,
+                        d.Cin,
+                        d.DateNaissance,
+                        d.LieuNaissance,
+                        d.Sexe,
+                        d.DateDelivrance,
+                        d.Pays,
+                        d.CinPathFront,
+                        d.CinPathBack,
+                        d.IndicateurResidencePath,
+                        d.Telephone,
+                        d.RelationBanque
+                    })
+                    .ToListAsync();
+
+                return Ok(demandes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Erreur lors du chargement des demandes par agence.",
+                    error = ex.Message,
+                    inner = ex.InnerException?.Message
+                });
+            }
+        }
     }
 
     // DTO pour PATCH status
     public class StatusUpdateDto
     {
         public string? Status { get; set; }
+    }
+    public class ApproveDto
+    {
+        public int? Pack { get; set; }
+        public string? Rib { get; set; }
     }
 }
